@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>持ち物確認アプリ - フル機能版</title>
+	<style>
+		/* 変数定義（ダークモード切り替え用） */
+		:root {
+			--bg-color: #ffffff;
+			--text-color: #333333;
+			--card-bg: #f8f9fa;
+			--card-border: #e9ecef;
+		}
+
+		[data-theme="dark"] {
+			--bg-color: #1c1c1e;
+			--text-color: #ffffff;
+			--card-bg: #2c2c2e;
+			--card-border: #3a3a3c;
+		}
+
+		body {
+			font-family: 'Helvetica Neue', Arial, sans-serif;
+			background-color: #f0f2f5;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			min-height: 100vh;
+			margin: 0;
+		}
+
+		.phone-container {
+			width: 360px;
+			height: 640px;
+			background-color: var(--bg-color);
+			color: var(--text-color);
+			border-radius: 30px;
+			box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+			position: relative;
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
+			border: 8px solid #333;
+			transition: background 0.3s, color 0.3s;
+		}
+
+		.screen {
+			display: none;
+			flex: 1;
+			padding: 20px;
+			overflow-y: auto;
+			box-sizing: border-box;
+			padding-bottom: 80px;
+		}
+
+		.screen.active {
+			display: flex;
+			flex-direction: column;
+		}
+
+		h2 {
+			font-size: 1.4rem;
+			margin-top: 10px;
+			margin-bottom: 5px;
+			text-align: center;
+		}
+
+		.sub-title {
+			font-size: 0.9rem;
+			color: #007aff;
+			text-align: center;
+			margin-bottom: 15px;
+			font-weight: bold;
+		}
+
+		.section-title {
+			font-size: 0.9rem;
+			font-weight: bold;
+			margin: 15px 0 8px 0;
+		}
+
+		.calendar-box, .notice-add-box, .setting-card {
+			background: var(--card-bg);
+			border: 1px solid var(--card-border);
+			padding: 15px;
+			border-radius: 15px;
+			margin-bottom: 15px;
+		}
+
+		.calendar-box input[type="date"], .notice-add-box input[type="time"] {
+			font-size: 1.1rem;
+			padding: 6px 10px;
+			border: 1px solid #ced4da;
+			border-radius: 8px;
+			width: 60%;
+		}
+
+		.favorite-container {
+			background: var(--card-bg);
+			border: 1px dashed #ced4da;
+			border-radius: 12px;
+			padding: 10px;
+			margin-bottom: 15px;
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			max-height: 85px;
+			overflow-y: auto;
+		}
+
+		.fav-badge {
+			background: #e1f5fe;
+			color: #0288d1;
+			border: 1px solid #b3e5fc;
+			padding: 6px 12px;
+			border-radius: 20px;
+			font-size: 0.85rem;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			gap: 6px;
+		}
+
+		.add-item-form {
+			display: flex;
+			gap: 6px;
+			margin-bottom: 15px;
+		}
+
+		.add-item-form input[type="text"] {
+			flex: 1;
+			padding: 10px;
+			border: 1px solid #ced4da;
+			border-radius: 8px;
+			font-size: 0.9rem;
+		}
+
+		.btn-small {
+			border: none;
+			padding: 0 12px;
+			border-radius: 8px;
+			font-weight: bold;
+			cursor: pointer;
+			font-size: 0.85rem;
+			color: white;
+		}
+
+		.add-btn { background-color: #007aff; }
+		.fav-add-btn { background-color: #ff9500; }
+
+		.checklist {
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.check-item {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 12px 12px;
+			background: var(--card-bg);
+			border: 1px solid var(--card-border);
+			border-radius: 12px;
+		}
+
+		.day-selector { display: flex; gap: 2px; }
+		.day-dot {
+			font-size: 10px;
+			padding: 2px 5px;
+			background: #e9ecef;
+			color: #868e96;
+			border-radius: 4px;
+			cursor: pointer;
+		}
+		.day-dot.active { background: #007aff; color: #fff; }
+
+		.checkbox { width: 24px; height: 24px; cursor: pointer; }
+		.delete-btn { background: none; border: none; color: #ff3b30; font-size: 1.1rem; cursor: pointer; }
+
+		.save-btn {
+			background-color: #007aff;
+			color: white;
+			border: none;
+			padding: 14px;
+			border-radius: 12px;
+			font-size: 1rem;
+			font-weight: bold;
+			margin-top: auto;
+			cursor: pointer;
+		}
+
+		/* スイッチのスタイル */
+		.switch {
+			position: relative;
+			display: inline-block;
+			width: 44px;
+			height: 24px;
+		}
+		.switch input { opacity: 0; width: 0; height: 0; }
+		.slider {
+			position: absolute;
+			cursor: pointer;
+			top: 0; left: 0; right: 0; bottom: 0;
+			background-color: #ccc;
+			transition: .3s;
+			border-radius: 24px;
+		}
+		.slider:before {
+			position: absolute;
+			content: "";
+			height: 18px; width: 18px;
+			left: 3px; bottom: 3px;
+			background-color: white;
+			transition: .3s;
+			border-radius: 50%;
+		}
+		input:checked + .slider { background-color: #4cd964; }
+		input:checked + .slider:before { transform: translateX(20px); }
+
+		/* ナビゲーションバー */
+		.navbar {
+			position: absolute;
+			bottom: 0;
+			width: 100%;
+			height: 65px;
+			background-color: #f8f9fa;
+			border-top: 1px solid #dbdbdb;
+			display: flex;
+			justify-content: space-around;
+			align-items: center;
+		}
+
+		.nav-item {
+			background: none;
+			border: none;
+			color: #8e8e93;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			font-size: 10px;
+			cursor: pointer;
+			flex: 1;
+		}
+
+		.nav-item span { font-size: 18px; margin-bottom: 2px; }
+		.nav-item.active { color: #007aff; }
+		.hint-text { font-size: 11px; color: #868e96; text-align: center; margin-top: 8px; }
+	</style>
+</head>
+
+<body>
+
+	<div class="phone-container" id="phone">
+
+		<div id="screen-home" class="screen active">
+			<h2>今日の持ち物</h2>
+			<div id="home-date-label" class="sub-title"></div>
+			<div id="home-checklist" class="checklist"></div>
+			<button class="save-btn" onclick="saveHomeData()">今日の状態を保存</button>
+			<p class="hint-text">⭐️チェックすることで何がまだ持っていないのかわかりやすい！</p>
+		</div>
+
+		<div id="screen-calendar" class="screen">
+			<h2>カレンダー設定</h2>
+			<div class="sub-title">日付ごとに持ち物をカスタム</div>
+			<div class="calendar-box"><input type="date" id="selected-date" onchange="onDateChange()"></div>
+			<div class="section-title">⭐ お気に入り（タップで追加）</div>
+			<div id="favorite-list" class="favorite-container"></div>
+			<div class="add-item-form">
+				<input type="text" id="new-item-name" placeholder="例：体育着、お弁当">
+				<button class="btn-small add-btn" onclick="addNewItem()">追加</button>
+				<button class="btn-small fav-add-btn" onclick="addToFavorite()">⭐登録</button>
+			</div>
+			<div class="section-title">📋 この日の持ち物</div>
+			<div id="calendar-checklist" class="checklist" style="max-height: 120px; overflow-y: auto;"></div>
+			<button class="save-btn" onclick="saveCalendarData()">この日の設定を保存</button>
+		</div>
+
+		<div id="screen-notice" class="screen">
+			<h2>通知設定</h2>
+			<div class="sub-title">時間と曜日でリマインド</div>
+			<div class="notice-add-box">
+				<input type="time" id="new-notice-time" value="08:00">
+				<button class="btn-small add-btn" style="padding: 8px 15px; margin-left: 5px;" onclick="addNoticeTime()">追加</button>
+			</div>
+			<div id="notice-list" class="checklist"></div>
+			<button class="save-btn" onclick="saveNoticeData()">通知設定を保存</button>
+		</div>
+
+		<div id="screen-settings" class="screen">
+			<h2>設定</h2>
+			<div class="sub-title">アプリのカスタマイズ</div>
+
+			<div class="setting-card" style="display: flex; justify-content: space-between; align-items: center;">
+				<span style="font-weight: bold;">🌙 ダークモード</span>
+				<label class="switch">
+					<input type="checkbox" id="dark-mode-switch" onchange="toggleDarkMode(this.checked)">
+					<span class="slider"></span>
+				</label>
+			</div>
+
+			<div class="setting-card">
+				<span style="font-weight: bold; display: block; margin-bottom: 10px;">🎒 毎日の基本の持ち物</span>
+				<div class="add-item-form">
+					<input type="text" id="new-master-item" placeholder="新しい基本の持ち物">
+					<button class="btn-small add-btn" onclick="addMasterItem()">登録</button>
+				</div>
+				<div id="master-items-list" style="display: flex; flex-direction: column; gap: 5px; max-height: 120px; overflow-y: auto;">
+					</div>
+			</div>
+			
+			<p class="hint-text">※ここで基本の持ち物を変更すると、まだ予定が作られていない新しい日付の初期リストに反映されます。</p>
+		</div>
+
+		<div class="navbar">
+			<button class="nav-item" onclick="changeTab('screen-notice', this)"><span>🔔</span>通知</button>
+			<button class="nav-item active" onclick="changeTab('screen-home', this)"><span>🏠</span>ホーム</button>
+			<button class="nav-item" onclick="changeTab('screen-calendar', this)"><span>📅</span>カレンダー</button>
+			<button class="nav-item" onclick="changeTab('screen-settings', this)"><span>⚙️</span>設定</button>
+		</div>
+
+	</div>
+
+	<script>
+		const todayStr = new Date().toISOString().split('T')[0];
+		const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+		
+		let currentCalendarItems = [];
+		let favoriteItems = [];
+		let noticeItems = [];
+		let defaultItems = []; // 動的な基本の持ち物リスト
+
+		window.onload = function() {
+			document.getElementById('home-date-label').innerText = `本日 (${todayStr})`;
+			document.getElementById('selected-date').value = todayStr;
+			
+			// ローカルストレージから各種データを復元
+			const savedMaster = localStorage.getItem('master_items');
+			defaultItems = savedMaster ? JSON.parse(savedMaster) : ["✏️ 筆記用具", "💻 パソコン", "📚 教科書"];
+
+			const savedFavs = localStorage.getItem('favorite_items');
+			favoriteItems = savedFavs ? JSON.parse(savedFavs) : ["体育着", "お弁当", "習字道具"];
+			
+			const savedNotices = localStorage.getItem('notice_items');
+			noticeItems = savedNotices ? JSON.parse(savedNotices) : [
+				{ time: "07:00", enabled: true, days: [false, true, true, true, true, true, false] },
+				{ time: "22:00", enabled: true, days: [false, true, true, true, true, true, false] }
+			];
+
+			const isDark = localStorage.getItem('dark_mode') === 'true';
+			document.getElementById('dark-mode-switch').checked = isDark;
+			toggleDarkMode(isDark);
+			
+			loadHomeData();
+			loadCalendarDataForDate(todayStr);
+			renderFavorites();
+			renderNoticeList();
+			renderMasterItems();
+		};
+
+		function changeTab(screenId, element) {
+			document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+			document.getElementById(screenId).classList.add('active');
+			document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+			element.classList.add('active');
+
+			if (screenId === 'screen-home') loadHomeData();
+			if (screenId === 'screen-calendar') onDateChange();
+			if (screenId === 'screen-notice') renderNoticeList();
+			if (screenId === 'screen-settings') renderMasterItems();
+		}
+
+		function getItemsForDate(dateStr) {
+			const saved = localStorage.getItem('items_' + dateStr);
+			return saved ? JSON.parse(saved) : defaultItems.map(name => ({ name: name, checked: false }));
+		}
+
+		/* --- ① ホーム画面 --- */
+		function loadHomeData() {
+			const items = getItemsForDate(todayStr);
+			const container = document.getElementById('home-checklist');
+			container.innerHTML = '';
+			items.forEach((item, index) => {
+				container.innerHTML += `
+					<div class="check-item">
+						<span>${item.name}</span>
+						<input type="checkbox" id="home-chk-${index}" class="checkbox" ${item.checked ? 'checked' : ''}>
+					</div>
+				`;
+			});
+		}
+
+		function saveHomeData() {
+			const items = getItemsForDate(todayStr);
+			items.forEach((item, index) => { item.checked = document.getElementById(`home-chk-${index}`).checked; });
+			localStorage.setItem('items_' + todayStr, JSON.stringify(items));
+			alert('今日の持ち物チェック状態を保存しました！');
+		}
+
+		/* --- ② カレンダー画面 --- */
+		function onDateChange() {
+			const dateStr = document.getElementById('selected-date').value;
+			if (dateStr) loadCalendarDataForDate(dateStr);
+		}
+
+		function loadCalendarDataForDate(dateStr) {
+			currentCalendarItems = getItemsForDate(dateStr);
+			renderCalendarList();
+		}
+
+		function renderCalendarList() {
+			const container = document.getElementById('calendar-checklist');
+			container.innerHTML = '';
+			currentCalendarItems.forEach((item, index) => {
+				container.innerHTML += `
+					<div class="check-item">
+						<div style="display:flex; align-items:center; gap:10px;">
+							<input type="checkbox" id="cal-chk-${index}" class="checkbox" ${item.checked ? 'checked' : ''} onchange="currentCalendarItems[${index}].checked = this.checked">
+							<span>${item.name}</span>
+						</div>
+						<button class="delete-btn" onclick="deleteItem(${index})">🗑️</button>
+					</div>
+				`;
+			});
+		}
+
+		function addItemToCurrentList(name) {
+			if (currentCalendarItems.some(item => item.name === name)) return;
+			currentCalendarItems.push({ name: name, checked: false });
+			renderCalendarList();
+		}
+
+		function addNewItem() {
+			const input = document.getElementById('new-item-name');
+			if (input.value.trim()) addItemToCurrentList(input.value.trim());
+			input.value = '';
+		}
+
+		function deleteItem(index) { currentCalendarItems.splice(index, 1); renderCalendarList(); }
+		function saveCalendarData() {
+			const dateStr = document.getElementById('selected-date').value;
+			localStorage.setItem('items_' + dateStr, JSON.stringify(currentCalendarItems));
+			alert(`${dateStr} の持ち物設定を保存しました！`);
+		}
+
+		function renderFavorites() {
+			const container = document.getElementById('favorite-list');
+			container.innerHTML = favoriteItems.length ? '' : '<div class="empty-text">お気に入りがありません</div>';
+			favoriteItems.forEach((name, index) => {
+				container.innerHTML += `<div class="fav-badge" onclick="addItemToCurrentList('${name}')"><span>${name}</span><span style="color:#ff3b30;" onclick="deleteFavorite(event, ${index})">×</span></div>`;
+			});
+		}
+
+		function addToFavorite() {
+			const input = document.getElementById('new-item-name');
+			const name = input.value.trim();
+			if (name && !favoriteItems.includes(name)) {
+				favoriteItems.push(name);
+				localStorage.setItem('favorite_items', JSON.stringify(favoriteItems));
+				renderFavorites();
+			}
+			input.value = '';
+		}
+
+		function deleteFavorite(event, index) {
+			event.stopPropagation();
+			favoriteItems.splice(index, 1);
+			localStorage.setItem('favorite_items', JSON.stringify(favoriteItems));
+			renderFavorites();
+		}
+
+		/* --- 🔔 ③ 通知設定 --- */
+		function renderNoticeList() {
+			const container = document.getElementById('notice-list');
+			container.innerHTML = '';
+			noticeItems.forEach((notice, nIndex) => {
+				let daysHtml = '';
+				weekDays.forEach((day, dIndex) => {
+					daysHtml += `<span class="day-dot ${notice.days[dIndex] ? 'active' : ''}" onclick="toggleNoticeDay(${nIndex}, ${dIndex})">${day}</span>`;
+				});
+				container.innerHTML += `
+					<div class="check-item">
+						<div><span style="font-size:1.2rem; font-weight:bold;">${notice.time}</span><div class="day-selector">${daysHtml}</div></div>
+						<div style="display:flex; align-items:center; gap:10px;">
+							<input type="checkbox" class="checkbox" ${notice.enabled ? 'checked' : ''} onchange="noticeItems[${nIndex}].enabled = this.checked">
+							<button class="delete-btn" onclick="deleteNoticeTime(${nIndex})">🗑️</button>
+						</div>
+					</div>`;
+			});
+		}
+
+		function addNoticeTime() {
+			const time = document.getElementById('new-notice-time').value;
+			if (time && !noticeItems.some(n => n.time === time)) {
+				noticeItems.push({ time: time, enabled: true, days: [true, true, true, true, true, true, true] });
+				noticeItems.sort((a, b) => a.time.localeCompare(b.time));
+				renderNoticeList();
+			}
+		}
+		function deleteNoticeTime(index) { noticeItems.splice(index, 1); renderNoticeList(); }
+		function toggleNoticeDay(nIdx, dIdx) { noticeItems[nIdx].days[dIdx] = !noticeItems[nIdx].days[dIdx]; renderNoticeList(); }
+		function saveNoticeData() { localStorage.setItem('notice_items', JSON.stringify(noticeItems)); alert('通知設定を保存しました！'); }
+
+		/* --- ⚙️ ④ 設定画面の新機能処理 --- */
+		// ダークモード切り替え
+		function toggleDarkMode(isDark) {
+			const phone = document.getElementById('phone');
+			if (isDark) {
+				phone.setAttribute('data-theme', 'dark');
+			} else {
+				phone.removeAttribute('data-theme');
+			}
+			localStorage.setItem('dark_mode', isDark);
+		}
+
+		// 基本の持ち物（マスター）表示
+		function renderMasterItems() {
+			const container = document.getElementById('master-items-list');
+			container.innerHTML = '';
+			defaultItems.forEach((name, index) => {
+				container.innerHTML += `
+					<div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.05); padding:8px 12px; border-radius:8px;">
+						<span>${name}</span>
+						<button class="delete-btn" style="font-size:0.9rem;" onclick="deleteMasterItem(${index})">❌</button>
+					</div>
+				`;
+			});
+		}
+
+		// 基本の持ち物追加
+		function addMasterItem() {
+			const input = document.getElementById('new-master-item');
+			const name = input.value.trim();
+			if (name && !defaultItems.includes(name)) {
+				defaultItems.push(name);
+				localStorage.setItem('master_items', JSON.stringify(defaultItems));
+				renderMasterItems();
+			}
+			input.value = '';
+		}
+
+		// 基本の持ち物削除
+		function deleteMasterItem(index) {
+			defaultItems.splice(index, 1);
+			localStorage.setItem('master_items', JSON.stringify(defaultItems));
+			renderMasterItems();
+		}
+	</script>
+
+</body>
+</html>
+
